@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://henrique2025ai.github.io/churrasco-de-crente/sitemap.xml
