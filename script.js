@@ -310,6 +310,8 @@ const defaultItems = [
   },
 ];
 
+const categoryOrder = ["Carnes", "Bebidas", "Acompanhamentos", "Estrutura / Apoio"];
+
 const savedState = JSON.parse(localStorage.getItem("churrasco-state") || "null");
 
 const state = {
@@ -462,7 +464,7 @@ function applyRemoteItems(remoteItems) {
       selected: selectedById[item.id] ?? item.selected_by_default ?? local.selected ?? false,
       alcoholic: item.alcoholic,
     };
-  });
+  }).sort((itemA, itemB) => getCategoryRank(itemA.category) - getCategoryRank(itemB.category));
 }
 
 function getTotals() {
@@ -537,7 +539,11 @@ function calculate() {
     .filter((item) => item.active && item.selected)
     .filter((item) => !(state.noAlcohol && item.alcoholic))
     .map((item) => calculateItem(item, totals, meatBaseKg))
-    .filter((item) => item.qty > 0);
+    .filter((item) => item.qty > 0)
+    .sort((itemA, itemB) => {
+      const categoryDiff = getCategoryRank(itemA.category) - getCategoryRank(itemB.category);
+      return categoryDiff || itemA.displayName.localeCompare(itemB.displayName, "pt-BR");
+    });
   const total = selected.reduce((sum, item) => sum + item.subtotal, 0);
   return {
     totals,
@@ -603,13 +609,19 @@ function renderItems() {
     return acc;
   }, {});
 
-  dom.categoryList.innerHTML = Object.entries(grouped)
+  const orderedCategories = [
+    ...categoryOrder.filter((category) => grouped[category]?.length),
+    ...Object.keys(grouped).filter((category) => !categoryOrder.includes(category)),
+  ];
+
+  dom.categoryList.innerHTML = orderedCategories
     .map(
-      ([category, items]) => `
+      (category) => `
         <div class="category">
           <h3>${category}</h3>
           <div class="item-grid">
-            ${items
+            ${grouped[category]
+              .sort((itemA, itemB) => itemA.name.localeCompare(itemB.name, "pt-BR"))
               .map(
                 (item) => `
                   <label class="item-toggle">
@@ -651,6 +663,11 @@ function renderItems() {
       render();
     });
   });
+}
+
+function getCategoryRank(category) {
+  const rank = categoryOrder.indexOf(category);
+  return rank === -1 ? categoryOrder.length : rank;
 }
 
 function renderResults(result) {
