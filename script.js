@@ -8,6 +8,11 @@ const qtyFormat = new Intl.NumberFormat("pt-BR", {
   minimumFractionDigits: 0,
 });
 
+const supabaseConfig = {
+  url: "https://fccaujtsoythogksxgmn.supabase.co",
+  publishableKey: "sb_publishable_p3C7_KBdIEWxTylgoVwpXg_CuaAEp9j",
+};
+
 const today = "2026-04-16";
 
 const defaultRules = {
@@ -306,8 +311,6 @@ const defaultItems = [
 ];
 
 const savedState = JSON.parse(localStorage.getItem("churrasco-state") || "null");
-const savedItems = JSON.parse(localStorage.getItem("churrasco-items") || "null");
-const savedRules = JSON.parse(localStorage.getItem("churrasco-rules") || "null");
 
 const state = {
   level: savedState?.level || "basic",
@@ -316,8 +319,9 @@ const state = {
   safety: savedState?.safety ?? false,
   noAlcohol: savedState?.noAlcohol ?? true,
   beerNudge: false,
-  items: savedItems || structuredClone(defaultItems),
-  rules: savedRules || structuredClone(defaultRules),
+  items: structuredClone(defaultItems),
+  rules: structuredClone(defaultRules),
+  dataSource: "Base local",
 };
 
 const dom = {
@@ -346,6 +350,120 @@ const dom = {
   adminItems: document.querySelector("#adminItems"),
   resetAdminButton: document.querySelector("#resetAdminButton"),
 };
+
+async function supabaseSelect(table, query = "select=*") {
+  const response = await fetch(`${supabaseConfig.url}/rest/v1/${table}?${query}`, {
+    headers: {
+      apikey: supabaseConfig.publishableKey,
+      Authorization: `Bearer ${supabaseConfig.publishableKey}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase ${table}: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function loadSupabaseData() {
+  try {
+    const [remoteItems, remoteRules, remoteLevels] = await Promise.all([
+      supabaseSelect("items", "select=*&active=eq.true&order=category.asc,name.asc"),
+      supabaseSelect("calculation_rules", "select=*&id=eq.default&limit=1"),
+      supabaseSelect("levels", "select=*&active=eq.true&order=id.asc"),
+    ]);
+
+    applyRemoteRules(remoteRules[0]);
+    applyRemoteLevels(remoteLevels);
+    applyRemoteItems(remoteItems);
+    state.dataSource = "Supabase";
+  } catch (error) {
+    state.dataSource = "Base local";
+    console.warn("Usando base local porque o Supabase não respondeu.", error);
+  }
+}
+
+function applyRemoteRules(rule) {
+  if (!rule) return;
+
+  state.rules = {
+    menKg: Number(rule.men_kg) || defaultRules.menKg,
+    womenKg: Number(rule.women_kg) || defaultRules.womenKg,
+    kidsKg: Number(rule.kids_kg) || defaultRules.kidsKg,
+    mainMeatShare: Number(rule.main_meat_share) || defaultRules.mainMeatShare,
+    sausageShare: Number(rule.sausage_share) || defaultRules.sausageShare,
+    chickenShare: Number(rule.chicken_share) || defaultRules.chickenShare,
+    safetyMargin: Number(rule.safety_margin) || defaultRules.safetyMargin,
+  };
+}
+
+function applyRemoteLevels(remoteLevels) {
+  const byId = Object.fromEntries(remoteLevels.map((level) => [level.id, level]));
+  const basicOptions = ["basic-contra-file", "basic-alcatra"]
+    .map((id) => byId[id])
+    .filter(Boolean)
+    .map((level) => ({
+      label: level.main_meat,
+      price: Number(level.main_meat_price) || 0,
+      source: level.price_source,
+    }));
+
+  if (basicOptions.length) levels.basic.meatOptions = basicOptions;
+  if (byId.medium) {
+    levels.medium.name = byId.medium.name;
+    levels.medium.description = byId.medium.description;
+    levels.medium.meatOptions = [
+      {
+        label: byId.medium.main_meat,
+        price: Number(byId.medium.main_meat_price) || 0,
+        source: byId.medium.price_source,
+      },
+    ];
+  }
+  if (byId.premium) {
+    levels.premium.name = byId.premium.name;
+    levels.premium.description = byId.premium.description;
+    levels.premium.meatOptions = [
+      {
+        label: byId.premium.main_meat,
+        price: Number(byId.premium.main_meat_price) || 0,
+        source: byId.premium.price_source,
+      },
+    ];
+  }
+
+  if (!levels.basic.meatOptions.some((option) => option.label === state.basicMeat)) {
+    state.basicMeat = levels.basic.meatOptions[0]?.label || "Contra-filé";
+  }
+}
+
+function applyRemoteItems(remoteItems) {
+  if (!remoteItems.length) return;
+
+  const selectedById = Object.fromEntries(state.items.map((item) => [item.id, item.selected]));
+  state.items = remoteItems.map((item) => {
+    const local = defaultItems.find((entry) => entry.id === item.id) || {};
+    return {
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      unit: item.unit,
+      rule: item.calculation_rule,
+      perPerson: item.calculation_rule === "perPersonKg" ? Number(item.consumption_value) || 0 : undefined,
+      litersPerPerson: item.calculation_rule === "litersPerPerson" ? Number(item.consumption_value) || 0 : undefined,
+      packagesPerAdult: item.calculation_rule === "packagePerAdult" ? Number(item.consumption_value) || 0 : undefined,
+      fixedQty: item.calculation_rule === "fixedIfAny" ? Number(item.consumption_value) || 0 : undefined,
+      peoplePerPackage: item.calculation_rule === "packagePerPeople" ? Number(item.package_size) || 1 : undefined,
+      price: Number(item.price) || 0,
+      source: item.price_source,
+      updatedAt: item.updated_at ? item.updated_at.slice(0, 10) : today,
+      active: item.active,
+      selected: selectedById[item.id] ?? item.selected_by_default ?? local.selected ?? false,
+      alcoholic: item.alcoholic,
+    };
+  });
+}
 
 function getTotals() {
   const men = numeric(state.people.men);
@@ -682,8 +800,6 @@ function persist() {
       noAlcohol: state.noAlcohol,
     }),
   );
-  localStorage.setItem("churrasco-items", JSON.stringify(state.items));
-  localStorage.setItem("churrasco-rules", JSON.stringify(state.rules));
 }
 
 function numeric(value) {
@@ -763,4 +879,10 @@ dom.resetAdminButton?.addEventListener("click", () => {
   render();
 });
 
-render();
+async function init() {
+  render();
+  await loadSupabaseData();
+  render();
+}
+
+init();
