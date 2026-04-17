@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Churrasco de Crente</title>
+    <meta
+      name="description"
+      content="Planejador premium e simples para calcular churrasco por perfil de convidados, itens selecionados e preço médio."
+    />
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero" id="topo">
+      <img
+        class="hero__image"
+        src="https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=1800&q=88"
+        alt="Carne assando na brasa com fogo e fumaça"
+      />
+      <div class="hero__shade"></div>
+      <div class="embers" aria-hidden="true"></div>
+      <nav class="topbar" aria-label="Navegação principal">
+        <a href="#topo" class="brand">Churrasco de Crente</a>
+        <div class="topbar__links">
+          <a href="#montar">Montar</a>
+          <a href="#lista">Lista</a>
+        </div>
+      </nav>
+      <div class="hero__content">
+        <p class="eyebrow">Planejador da comunhão</p>
+        <h1>Churrasco de Crente</h1>
+        <p>
+          Brasa acesa, lista enxuta e conta sem susto. Escolha o nível, marque os itens e veja em
+          tempo real a quantidade, o total e o valor por adulto.
+        </p>
+        <a class="button button--light" href="#montar">Montar meu churrasco</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="visual-summary" aria-label="Resumo visual">
+        <div>
+          <span>Total de convidados</span>
+          <strong id="summaryGuests">0</strong>
+        </div>
+        <div>
+          <span>Nível escolhido</span>
+          <strong id="summaryLevel">Básico</strong>
+        </div>
+        <div>
+          <span>Carne principal</span>
+          <strong id="summaryMeat">Contra-filé</strong>
+        </div>
+        <div>
+          <span>Custo total</span>
+          <strong id="summaryTotal">R$ 0,00</strong>
+        </div>
+        <div class="visual-summary__accent">
+          <span>Por adulto</span>
+          <strong id="summaryPerPerson">R$ 0,00</strong>
+        </div>
+      </section>
+      <p class="summary-note">Criança ajuda a comer... mas não entra na divisão 😄</p>
+
+      <section class="planner" id="montar">
+        <div class="section-heading">
+          <p class="eyebrow">Passo 1</p>
+          <h2>Escolha o nível do churrasco</h2>
+          <p>A troca de nível muda somente a carne principal. O resto continua na mesma regra.</p>
+        </div>
+        <div class="level-grid" id="levelGrid"></div>
+
+        <div class="planner-grid">
+          <section class="panel people-panel" aria-labelledby="people-title">
+            <div class="section-heading section-heading--compact">
+              <p class="eyebrow">Passo 2</p>
+              <h2 id="people-title">Quantidade de pessoas</h2>
+            </div>
+            <div class="people-inputs">
+              <label>
+                <span>Homens</span>
+                <input id="menInput" type="number" min="0" step="1" />
+              </label>
+              <label>
+                <span>Mulheres</span>
+                <input id="womenInput" type="number" min="0" step="1" />
+              </label>
+              <label>
+                <span>Crianças</span>
+                <input id="kidsInput" type="number" min="0" step="1" />
+              </label>
+            </div>
+            <div class="small-total">
+              <span>Total geral</span>
+              <strong id="peopleTotal">0 pessoas</strong>
+            </div>
+            <div class="preset-row">
+              <button class="button button--soft" id="economicButton" type="button">
+                Montar econômico
+              </button>
+              <button class="button button--soft" id="completeButton" type="button">
+                Montar completo
+              </button>
+            </div>
+            <label class="check-row">
+              <input id="safetyInput" type="checkbox" />
+              <span>Incluir margem de segurança de 10%</span>
+            </label>
+            <label class="check-row">
+              <input id="noAlcoholInput" type="checkbox" />
+              <span>Excluir bebidas alcoólicas</span>
+            </label>
+          </section>
+
+          <section class="panel" aria-labelledby="items-title">
+            <div class="section-heading section-heading--compact">
+              <p class="eyebrow">Passo 3</p>
+              <h2 id="items-title">Itens do churrasco</h2>
+              <p>Marque só o que vai entrar na compra.</p>
+            </div>
+            <div class="category-list" id="categoryList"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="results" aria-labelledby="results-title">
+        <div class="section-heading">
+          <p class="eyebrow">Resultado</p>
+          <h2 id="results-title">Resumo do churrasco</h2>
+          <p id="priceNotice">
+            Os valores são estimativas e podem variar conforme região, loja, promoção e
+            disponibilidade.
+          </p>
+        </div>
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Categoria</th>
+                <th>Item</th>
+                <th>Quantidade</th>
+                <th>Por convidado</th>
+                <th>Preço médio</th>
+                <th>Fonte</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody id="resultTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="shopping" id="lista">
+        <div class="shopping__copy">
+          <p class="eyebrow">Mercado</p>
+          <h2>Lista de compras</h2>
+          <p>Uma versão limpa para copiar, imprimir ou mandar no grupo.</p>
+          <div class="action-row">
+            <button class="button" id="copyButton" type="button">Copiar lista</button>
+            <button class="button button--soft" id="printButton" type="button">Exportar PDF</button>
+            <a class="button button--soft" id="whatsappButton" href="#" target="_blank" rel="noreferrer">
+              WhatsApp
+            </a>
+          </div>
+          <p class="copy-status" id="copyStatus" role="status"></p>
+        </div>
+        <textarea id="shoppingList" readonly aria-label="Lista final de compras"></textarea>
+      </section>
+
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
